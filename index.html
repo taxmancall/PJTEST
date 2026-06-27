@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRIDE J 단어 퀴즈 생성기</title>
+<style>
+  :root{
+    --green:#2f5d4a; --green-d:#244a3b; --green-l:#e7f0ea;
+    --gold:#c9a227; --bg:#f5f6f4; --ink:#1d2520; --line:#d8ddd8;
+    --ok:#1f8a4c; --ok-bg:#e4f5ea; --no:#c2382f; --no-bg:#fbe7e5;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.5;}
+  header{background:var(--green);color:#fff;padding:18px 20px;}
+  header h1{margin:0;font-size:20px;letter-spacing:.3px;}
+  header p{margin:4px 0 0;font-size:13px;opacity:.85;}
+  .wrap{max-width:860px;margin:0 auto;padding:18px 16px 60px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px;}
+  .card h2{margin:0 0 12px;font-size:16px;color:var(--green-d);
+    border-bottom:2px solid var(--green-l);padding-bottom:8px;}
+  label.fld{display:block;font-size:13px;font-weight:600;margin:10px 0 4px;color:#3a463f;}
+  input[type=text],input[type=password],select{width:100%;padding:10px;border:1px solid var(--line);
+    border-radius:8px;font-size:14px;font-family:inherit;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;}
+  .row>div{flex:1;min-width:160px;}
+  .hint{font-size:12px;color:#6b756e;margin-top:4px;}
+  .hint a{color:var(--green);}
+  /* upload */
+  .drop{border:2px dashed var(--green);border-radius:12px;background:var(--green-l);
+    padding:26px;text-align:center;cursor:pointer;transition:.15s;}
+  .drop:hover{background:#dceae1;}
+  .drop b{color:var(--green-d);}
+  .thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .thumb{position:relative;width:84px;height:84px;border-radius:8px;overflow:hidden;border:1px solid var(--line);}
+  .thumb img{width:100%;height:100%;object-fit:cover;}
+  .thumb button{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;
+    border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:12px;line-height:1;}
+  /* sections */
+  .secs{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;}
+  .secs label{display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer;padding:4px 0;}
+  .secs input{width:17px;height:17px;accent-color:var(--green);}
+  /* buttons */
+  .btn{background:var(--green);color:#fff;border:none;border-radius:8px;padding:12px 20px;
+    font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .btn:hover{background:var(--green-d);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .btn.ghost{background:#fff;color:var(--green);border:1px solid var(--green);}
+  .btn.sm{padding:7px 14px;font-size:13px;}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  /* loading */
+  #loading{display:none;text-align:center;padding:30px;color:var(--green-d);}
+  .spin{width:34px;height:34px;border:4px solid var(--green-l);border-top-color:var(--green);
+    border-radius:50%;animation:r .8s linear infinite;margin:0 auto 12px;}
+  @keyframes r{to{transform:rotate(360deg);}}
+  /* quiz */
+  #quiz{display:none;}
+  .scorebar{position:sticky;top:0;z-index:5;background:var(--green-d);color:#fff;
+    border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;
+    align-items:center;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.12);}
+  .scorebar .pct{font-size:22px;font-weight:700;}
+  .sec-block h3{font-size:15px;color:var(--green-d);margin:18px 0 4px;}
+  .sec-block .instr{font-size:12.5px;color:#6b756e;font-style:italic;margin:0 0 10px;}
+  .qitem{border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:10px;background:#fff;}
+  .qitem .stem{font-weight:600;margin-bottom:10px;}
+  .qitem .stem .num{color:var(--green);margin-right:4px;}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);background:#fafbfa;
+    border-radius:8px;padding:10px 12px;margin:6px 0;cursor:pointer;font-size:14px;font-family:inherit;
+    transition:.12s;}
+  .opt:hover:not(:disabled){border-color:var(--green);background:var(--green-l);}
+  .opt:disabled{cursor:default;}
+  .opt .lt{font-weight:700;color:var(--green);margin-right:8px;}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok);color:#155e34;}
+  .opt.correct .lt{color:var(--ok);}
+  .opt.wrong{background:var(--no-bg);border-color:var(--no);color:#8a221b;}
+  .opt.wrong .lt{color:var(--no);}
+  .verdict{font-size:13px;font-weight:600;margin-top:6px;}
+  .verdict.ok{color:var(--ok);}
+  .verdict.no{color:var(--no);}
+  textarea{width:100%;min-height:54px;padding:10px;border:1px solid var(--line);border-radius:8px;
+    font-size:14px;font-family:inherit;resize:vertical;}
+  .sample{margin-top:8px;font-size:13px;background:var(--green-l);border-radius:8px;padding:8px 10px;display:none;}
+  .sample b{color:var(--green-d);}
+  .err{background:var(--no-bg);border:1px solid var(--no);color:#8a221b;border-radius:8px;
+    padding:12px;font-size:13.5px;margin-top:10px;display:none;}
+  .words-chip{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+  .chip{background:var(--green-l);color:var(--green-d);border-radius:20px;padding:4px 12px;font-size:12.5px;font-weight:600;}
+  @media(max-width:560px){.secs{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🦁 PRIDE J 단어 퀴즈 생성기</h1>
+  <p>단어 사진을 올리면 시험 문제를 자동으로 만들어 줘요 · powered by Gemini</p>
+</header>
+
+<div class="wrap">
+
+  <!-- ===== SETUP ===== -->
+  <div class="card" id="setup">
+    <h2>① 설정</h2>
+    <div class="row">
+      <div>
+        <label class="fld">Gemini API Key</label>
+        <input type="password" id="apiKey" placeholder="AIza... 로 시작하는 키">
+        <div class="hint">키는 이 브라우저에만 저장돼요. 발급: <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a></div>
+      </div>
+      <div style="max-width:230px">
+        <label class="fld">모델</label>
+        <select id="model">
+          <option value="gemini-2.5-flash">gemini-2.5-flash (추천)</option>
+          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro (정확·느림)</option>
+          <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+        </select>
+        <div class="hint">사진이 흐리면 pro 모델 추천</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>② 단어 사진 올리기</h2>
+    <div class="drop" id="drop">
+      <div style="font-size:30px">📷</div>
+      <b>여기를 눌러 사진 선택</b> (여러 장 가능)<br>
+      <span class="hint">단어장·시험지·교재 페이지 모두 OK</span>
+    </div>
+    <input type="file" id="file" accept="image/*" multiple style="display:none">
+    <div class="thumbs" id="thumbs"></div>
+  </div>
+
+  <div class="card">
+    <h2>③ 만들 문제 유형 고르기</h2>
+    <div class="secs" id="secs">
+      <label><input type="checkbox" value="match_meaning" checked> Match the Meaning (뜻→단어)</label>
+      <label><input type="checkbox" value="synonym" checked> Synonym (동의어)</label>
+      <label><input type="checkbox" value="antonym" checked> Antonym (반의어)</label>
+      <label><input type="checkbox" value="completing" checked> Completing the Sentence (빈칸)</label>
+      <label><input type="checkbox" value="word_association" checked> Word Association (의미 추론)</label>
+      <label><input type="checkbox" value="part_of_speech" checked> Part of Speech (품사)</label>
+      <label><input type="checkbox" value="sentences" checked> Sentences (직접 작문·주관식)</label>
+    </div>
+    <div class="bar" style="margin-top:16px">
+      <button class="btn" id="gen">✨ 문제 만들기</button>
+      <span class="hint" id="genHint"></span>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <!-- ===== LOADING ===== -->
+  <div id="loading">
+    <div class="spin"></div>
+    <div id="loadMsg">사진에서 단어를 읽고 있어요…</div>
+  </div>
+
+  <!-- ===== QUIZ ===== -->
+  <div id="quiz">
+    <div class="scorebar">
+      <div>객관식 점수 <span id="solved">0</span>/<span id="total">0</span></div>
+      <div class="pct" id="pct">0%</div>
+    </div>
+    <div class="words-chip" id="wordChips"></div>
+    <div id="quizBody"></div>
+    <div class="bar" style="margin-top:18px">
+      <button class="btn ghost" id="reset">↺ 다시 / 새 사진</button>
+      <button class="btn sm ghost" id="showAll">모든 모범답안 보기</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+let images=[]; // {dataURL, b64, mime}
+let stats={correct:0, answered:0, total:0};
+
+// ---- API key persistence (safe) ----
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+const savedKey=lsGet('gemini_key'); if(savedKey)$('#apiKey').value=savedKey;
+const savedModel=lsGet('gemini_model'); if(savedModel)$('#model').value=savedModel;
+$('#apiKey').addEventListener('change',e=>lsSet('gemini_key',e.target.value.trim()));
+$('#model').addEventListener('change',e=>lsSet('gemini_model',e.target.value));
+
+// ---- upload ----
+$('#drop').onclick=()=>$('#file').click();
+$('#file').onchange=e=>{ [...e.target.files].forEach(addImage); e.target.value=''; };
+function addImage(f){
+  if(!f.type.startsWith('image/'))return;
+  const r=new FileReader();
+  r.onload=()=>{
+    const dataURL=r.result;
+    images.push({dataURL, b64:dataURL.split(',')[1], mime:f.type});
+    renderThumbs();
+  };
+  r.readAsDataURL(f);
+}
+function renderThumbs(){
+  $('#thumbs').innerHTML=images.map((im,i)=>
+    `<div class="thumb"><img src="${im.dataURL}"><button data-i="${i}">✕</button></div>`).join('');
+  $$('#thumbs button').forEach(b=>b.onclick=()=>{images.splice(+b.dataset.i,1);renderThumbs();});
+}
+
+// ---- prompt ----
+function buildPrompt(sections){
+  const map={
+    match_meaning:"Match the Meaning: a clue/definition is given; 3 options are vocabulary WORDS; pick the word that matches.",
+    synonym:"Synonym: a sentence with the target word UNDERLINED; 3 options are plain words; pick the closest in meaning.",
+    antonym:"Antonym: a sentence with the target word UNDERLINED; 3 options are plain words; pick the OPPOSITE in meaning.",
+    completing:"Completing the Sentence: a sentence with a ______ blank; 3 vocabulary-word options; pick the best fit.",
+    word_association:"Word Association: a 'What/Why does ... mean' question; 3 descriptive options; pick the one that best describes the underlined word.",
+    part_of_speech:"Part of Speech: a sentence with the target word UNDERLINED; options are exactly ['noun','verb','adjective']; pick the correct part of speech.",
+    sentences:"Sentences: short-answer. Student writes their own sentence using the word. Provide a simple 'sample' answer."
+  };
+  const wanted=sections.map(s=>`- ${s}: ${map[s]}`).join('\n');
+  return `You are an English vocabulary test generator for "PRIDE J Academy" (Grade 2 / elementary students).
+Read EVERY vocabulary word shown in the attached image(s). Each entry has a word, part of speech, definition, an example sentence, synonyms (Syn) and antonyms (Ant). Ignore the student's handwriting; use the printed textbook content.
+
+For EVERY word found, generate questions for these section types only:
+${wanted}
+
+Rules:
+- Generate ONE question per word for each requested multiple-choice section (so 10 words + 4 MC sections = 40 MC questions).
+- For "sentences" section, make one short-answer item per word.
+- Keep language simple and age-appropriate. Reuse the textbook example sentences where natural.
+- Each multiple-choice question has EXACTLY 3 options and one correct answer.
+- "answer" is the 0-based index of the correct option.
+- Vary the position of the correct answer across questions.
+- For part_of_speech, options MUST be ["noun","verb","adjective"] in that order.
+
+Return ONLY valid JSON (no markdown), with this exact shape:
+{
+ "words": ["ancient","disturb"],
+ "sections": [
+   {"type":"match_meaning","title":"Match the Meaning","instruction":"Select the word whose meaning is suggested by the clue.",
+    "questions":[{"stem":"Very old; from long ago.","options":["brief","ancient","timid"],"answer":1}]},
+   {"type":"sentences","title":"Sentences","instruction":"Write a complete sentence using the word. (2 points each)",
+    "questions":[{"word":"ancient","sample":"We saw an ancient temple on our trip."}]}
+ ]
+}`;
+}
+
+// ---- generate ----
+$('#gen').onclick=async()=>{
+  const key=$('#apiKey').value.trim();
+  const model=$('#model').value;
+  const secs=[...$$('#secs input:checked')].map(c=>c.value);
+  $('#err').style.display='none';
+  if(!key){return showErr("Gemini API Key를 먼저 입력해 주세요.");}
+  if(!images.length){return showErr("단어 사진을 한 장 이상 올려 주세요.");}
+  if(!secs.length){return showErr("문제 유형을 한 개 이상 선택해 주세요.");}
+
+  $('#setup').scrollIntoView({behavior:'smooth'});
+  $('#loading').style.display='block';
+  $('#quiz').style.display='none';
+  $('#gen').disabled=true;
+  $('#loadMsg').textContent="사진에서 단어를 읽고 문제를 만들고 있어요…";
+
+  const parts=[{text:buildPrompt(secs)}];
+  images.forEach(im=>parts.push({inline_data:{mime_type:im.mime,data:im.b64}}));
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+
+  try{
+    const res=await fetch(url,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        contents:[{parts}],
+        generationConfig:{temperature:0.5, responseMimeType:"application/json", maxOutputTokens:8192}
+      })
+    });
+    const data=await res.json();
+    if(!res.ok){throw new Error(data?.error?.message || ('HTTP '+res.status));}
+    const txt=data?.candidates?.[0]?.content?.parts?.map(p=>p.text).join('')||'';
+    const clean=txt.replace(/```json|```/g,'').trim();
+    const quiz=JSON.parse(clean);
+    renderQuiz(quiz);
+  }catch(e){
+    showErr("문제 생성에 실패했어요: "+e.message+"\n(키가 맞는지, 사진이 또렷한지 확인해 주세요. 모델을 바꿔보는 것도 방법이에요.)");
+  }finally{
+    $('#loading').style.display='none';
+    $('#gen').disabled=false;
+  }
+};
+function showErr(m){const e=$('#err');e.style.display='block';e.textContent=m;$('#loading').style.display='none';}
+
+// ---- render quiz ----
+const LETTERS=['a','b','c','d'];
+function renderQuiz(quiz){
+  stats={correct:0,answered:0,total:0};
+  $('#wordChips').innerHTML=(quiz.words||[]).map(w=>`<span class="chip">${esc(w)}</span>`).join('');
+  let html='', n=0;
+  (quiz.sections||[]).forEach(sec=>{
+    html+=`<div class="sec-block"><h3>${esc(sec.title||sec.type)}</h3>`;
+    if(sec.instruction)html+=`<p class="instr">${esc(sec.instruction)}</p>`;
+    (sec.questions||[]).forEach(q=>{
+      n++;
+      if(sec.type==='sentences'){
+        html+=`<div class="qitem">
+          <div class="stem"><span class="num">${n}.</span>${esc(q.word||'')}</div>
+          <textarea placeholder="여기에 영어 문장을 써 보세요"></textarea>
+          <button class="btn sm ghost" style="margin-top:8px" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">모범답안 보기</button>
+          <div class="sample"><b>예시 답:</b> ${esc(q.sample||'')}</div>
+        </div>`;
+      }else{
+        stats.total++;
+        const opts=(q.options||[]).map((o,i)=>
+          `<button class="opt" data-correct="${i===q.answer?1:0}" onclick="pick(this)">
+             <span class="lt">${LETTERS[i]})</span>${esc(o)}</button>`).join('');
+        html+=`<div class="qitem">
+          <div class="stem"><span class="num">${n}.</span>${esc(q.stem||'')}</div>
+          ${opts}
+          <div class="verdict"></div>
+        </div>`;
+      }
+    });
+    html+=`</div>`;
+  });
+  $('#quizBody').innerHTML=html;
+  $('#total').textContent=stats.total;
+  updateScore();
+  $('#quiz').style.display='block';
+  $('#quiz').scrollIntoView({behavior:'smooth'});
+}
+
+// ---- answer click ----
+window.pick=function(btn){
+  const item=btn.closest('.qitem');
+  if(item.dataset.done)return;
+  item.dataset.done='1';
+  const correct=btn.dataset.correct==='1';
+  [...item.querySelectorAll('.opt')].forEach(o=>{
+    o.disabled=true;
+    if(o.dataset.correct==='1')o.classList.add('correct');
+  });
+  if(!correct)btn.classList.add('wrong');
+  const v=item.querySelector('.verdict');
+  v.textContent=correct?'✓ 정답이에요!':'✗ 아쉬워요. 초록색이 정답이에요.';
+  v.className='verdict '+(correct?'ok':'no');
+  stats.answered++; if(correct)stats.correct++;
+  updateScore();
+};
+function updateScore(){
+  $('#solved').textContent=stats.correct;
+  const pct=stats.total?Math.round(stats.correct/stats.total*100):0;
+  $('#pct').textContent=pct+'%';
+}
+
+// ---- misc ----
+$('#showAll')&&($('#showAll').onclick=()=>{$$('.sample').forEach(s=>s.style.display='block');
+  $$('.qitem button.ghost').forEach(b=>{if(b.textContent.includes('모범'))b.style.display='none';});});
+$('#reset').onclick=()=>{$('#quiz').style.display='none';window.scrollTo({top:0,behavior:'smooth'});};
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+</script>
+</body>
+</html>
